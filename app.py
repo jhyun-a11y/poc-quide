@@ -1,46 +1,45 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-from datetime import datetime
 
 # ---------------------------------------------------------
-# [1] 사용자 설정 구간 (여기만 실제 엑셀과 똑같이 고치세요!)
-# 구글 시트 1행에 적힌 '글자'를 띄어쓰기까지 정확하게 적어야 합니다.
+# [1] 사용자 설정 구간 (구글 시트 헤더와 100% 일치해야 함)
+# 공유해주신 시트의 질문 내용을 반영했습니다.
 # ---------------------------------------------------------
 
-COL_NAME = "성함"                  # 예: 이름, 성명, 대상자명
-COL_QUIZ_SCORE = "퀴즈 정답 개수"   # 예: 퀴즈 점수, 미션 성공 횟수 (숫자만 입력받는 칸)
-COL_SLEEP_TIME = "수면 시간"        # 예: 어제 잔 시간, 수면 시간(시간)
-COL_FEELING = "오늘의 컨디션"       # 예: 걷기 후 기분, 주관적 느낌
+COL_NAME = "성함이 어떻게 되세요?"
+COL_QUIZ_SCORE = "보행 과제 후 1분 동안 걸으면서 퀴즈를 몇 문제 맞혔나요? ( 숫자만 입력)"
+COL_SLEEP_TIME = "어제 몇 시에 잤나요? (시간 입력, ex: 22)"
+COL_AWAKE_TIME = "어제 몇 시에 일어났나요? (시간 입력, ex: 7)"  # 예시 숫자 수정 (22 -> 7)
+COL_FEELING = "오늘의 컨디션"
 
 # ---------------------------------------------------------
 # [2] 웹페이지 기본 설정
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="투웰 두뇌 건강 비서",
+    page_title="두뇌 건강 비서",
     page_icon="🧠",
     layout="centered"
 )
 
-st.title("🧠 투웰(Tourism&Wellness) 두뇌 건강 비서")
-st.markdown("### 매일 걷고, 매일 기억하세요!")
+st.title("🧠 두뇌 건강 비서")
+st.markdown("쉬운 활동으로 기억을 잊지 말아요!")
 st.markdown("---")
 
 # ---------------------------------------------------------
 # [3] 구글 시트 데이터 가져오기
 # ---------------------------------------------------------
 try:
-    # ttl=0 옵션은 캐시를 남기지 않고 매번 새로고침 한다는 뜻입니다 (실시간성)
     conn = st.connection("gsheets", type=GSheetsConnection)
-    df = conn.read(ttl=0)
+    df = conn.read(ttl=0) # 실시간 새로고침
     
-    # 데이터 전처리: 혹시 모를 공백 제거 (엑셀 헤더에 스페이스바가 껴있을 경우 대비)
+    # 데이터 전처리: 컬럼명 앞뒤 공백 제거 (에러 방지용)
     df.columns = df.columns.str.strip()
     
 except Exception as e:
     st.error("🚨 구글 시트 연결에 실패했습니다.")
     st.error(f"에러 메시지: {e}")
-    st.info("Tip: secrets.toml 파일에 구글 시트 주소가 정확히 들어갔는지 확인해주세요.")
+    st.info("Tip: .streamlit/secrets.toml 파일에 구글 시트 주소가 올바른지 확인해주세요.")
     st.stop()
 
 # ---------------------------------------------------------
@@ -51,9 +50,10 @@ with st.form("login_form"):
     submitted = st.form_submit_button("내 기록 확인하기")
 
 if submitted and user_name_input:
-    # 해당 이름이 데이터에 있는지 확인
+    # 해당 이름 컬럼이 엑셀에 있는지 확인
     if COL_NAME not in df.columns:
-        st.error(f"엑셀에 '{COL_NAME}'이라는 컬럼이 없습니다. 코드 상단 변수를 수정해주세요.")
+        st.error(f"엑셀에서 '{COL_NAME}' 컬럼을 찾을 수 없습니다. 구글 폼의 질문 제목과 코드가 일치하는지 확인해주세요.")
+        st.write("현재 엑셀의 컬럼 목록:", df.columns.tolist()) # 디버깅용 힌트 제공
     else:
         # 이름으로 필터링
         user_data = df[df[COL_NAME] == user_name_input]
@@ -66,29 +66,43 @@ if submitted and user_name_input:
             # ---------------------------------------------------------
             last_row = user_data.iloc[-1] # 가장 마지막 행 가져오기
             
-            # 데이터 추출 (에러 방지를 위한 예외처리 포함)
             try:
-                score = float(last_row[COL_QUIZ_SCORE]) # 숫자로 변환
-                sleep = last_row[COL_SLEEP_TIME]
-                feeling = last_row.get(COL_FEELING, "-") # 없으면 - 표시
+                # 1. 점수 파싱 (숫자 변환)
+                score = float(last_row[COL_QUIZ_SCORE])
                 
+                # 2. 수면 시간 계산 로직 추가
+                # 엑셀에서 가져온 값을 정수(int)로 변환
+                bed_time = float(last_row[COL_SLEEP_TIME]) 
+                wake_time = float(last_row.get(COL_AWAKE_TIME, 0)) # 기상 시간 없으면 0 처리
+                
+                # 수면 시간 계산 (예: 22시 취침, 7시 기상 -> 9시간)
+                if bed_time > wake_time:
+                    sleep_duration = (24 - bed_time) + wake_time
+                else:
+                    sleep_duration = wake_time - bed_time
+                
+                # 3. 컨디션 가져오기
+                feeling = last_row.get(COL_FEELING, "-")
+
                 st.success(f"✅ {user_name_input}님의 최신 기록이 업데이트되었습니다.")
+                st.markdown("---")
                 
-                # 1. 대시보드 (메트릭 표시)
+                # 대시보드 (메트릭 표시)
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric("🧩 듀얼태스크 점수", f"{int(score)}점")
                 with col2:
-                    st.metric("😴 수면 시간", f"{sleep}")
+                    # 총 수면 시간을 표시하고, 아래 작은 글씨로 취침/기상 시간 표시
+                    st.metric("😴 총 수면 시간", f"{int(sleep_duration)}시간", f"{int(bed_time)}시 ~ {int(wake_time)}시")
                 with col3:
                     st.metric("Condition", f"{feeling}")
-                
+
                 st.markdown("---")
                 
-                # 2. 맞춤형 솔루션 (Pre-DTx 알고리즘)
+                # 맞춤형 솔루션 (Pre-DTx 알고리즘)
                 st.subheader("💡 오늘의 AI 건강 처방")
                 
-                # 점수에 따른 분기 (if-else logic)
+                # 점수별 피드백
                 if score >= 8:
                     st.balloons()
                     st.info(f"**[최우수 단계]** 인지-운동 연결성이 매우 좋습니다! \n\n"
@@ -101,9 +115,9 @@ if submitted and user_name_input:
                              "🏥 **강력 추천:** 낙상 위험이 있으니 내일은 평지 위주로 천천히 걸으시고, 보호자와 함께 산책하세요.")
             
             except ValueError:
-                st.error("점수 데이터가 숫자가 아닙니다. 구글 폼에서 점수를 '숫자'로만 입력했는지 확인해주세요.")
+                st.error("입력된 데이터 중 숫자가 아닌 값이 있습니다. 구글 폼에 숫자만 입력했는지 확인해주세요.")
             except KeyError as e:
-                st.error(f"엑셀에서 컬럼을 찾을 수 없습니다: {e}")
+                st.error(f"데이터를 불러오는 중 오류가 발생했습니다. 컬럼명을 확인해주세요: {e}")
 
 elif submitted and not user_name_input:
     st.warning("이름을 입력해야 결과를 볼 수 있습니다.")
