@@ -354,8 +354,3 @@ if submitted:
                         
                         csv = history_df.drop(columns=['temp_date']).to_csv(index=False).encode('utf-8-sig')
                         st.download_button("내 기록 엑셀로 저장", csv, "my_health_log.csv", "text/csv")
-
-
-[server]
-enableCORS = false
-enableXsrfProtection = false
