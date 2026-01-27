@@ -11,7 +11,7 @@ COL_AGE = "만 나이가 어떻게 되세요? "
 COL_GENDER = "성별이 무엇인가요?"
 COL_DATE = "오늘의 날짜를 적어주세요."
 COL_STEPS = "오늘의 총 걸음 수를 적어주세요"
-COL_BED_TIME = "어제 몇 시에 잠들었나요? "
+COL_BED_TIME = "어제 몇 시에 잠들었나요?"
 COL_WAKE_TIME = "오늘 몇 시에 일어났나요?"
 COL_QUIZ_SCORE = "10문제 중 1분 동안 걸으면서 퀴즈를 몇 문제 맞혔나요?"
 
