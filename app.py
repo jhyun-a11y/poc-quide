@@ -15,7 +15,6 @@ st.set_page_config(page_title="청력 및 인지 건강 비서", layout="centere
 
 st.title("청력 및 인지 건강 비서")
 st.markdown("### 노인성 난청 예방 및 관리 5단계 프로그램")
-st.caption("한국외대 난청 예방 PoC 프로젝트")
 st.markdown("---")
 
 try:
