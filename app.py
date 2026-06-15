@@ -68,39 +68,4 @@ if show_admin:
         st.metric("평균 청각훈련 점수", f"{summary_df[COL_AUDITORY_SCORE].mean():.1f}점")
 
     csv_all = df.to_csv(index=False).encode('utf-8-sig')
-    st.download_button("전체 데이터 통합 다운로드", csv_all, "total_hearing_data.csv")
-    st.markdown("---")
-
-with st.form("login_form"):
-    col1, col2 = st.columns(2)
-    with col1:
-        user_name_input = st.text_input("성함")
-    with col2:
-        user_pw_input = st.text_input("비밀번호 (전화번호 뒷자리)", type="password")
-    submitted = st.form_submit_button("내 기록 조회하기")
-
-if submitted:
-    if not user_name_input or not user_pw_input:
-        st.warning("성함과 비밀번호를 입력해주세요.")
-    else:
-        if COL_NAME not in df.columns:
-            st.error("컬럼 매칭 오류. 엑셀 헤더를 확인해주세요.")
-        else:
-            user_data = df[df[COL_NAME] == user_name_input]
-            
-            if user_data.empty:
-                st.error("가입된 정보가 없습니다.")
-            else:
-                last_row = user_data.iloc[-1]
-                sheet_pw = str(last_row.get(COL_PASSWORD, "")).strip()
-                if sheet_pw.endswith('.0'): sheet_pw = sheet_pw[:-2]
-                input_pw = str(user_pw_input).strip()
-
-                if sheet_pw != input_pw:
-                    st.error("비밀번호가 틀렸습니다.")
-                else:
-                    st.success(f"{user_name_input}님 환영합니다.")
-                    
-                    history_df = user_data.copy()
-                    history_df[COL_STEPS] = history_df[COL_STEPS].astype(str).str.replace(',', '').astype(int)
-                    history_df[COL_BALANCE] = pd.to_numeric(history_df[COL
+    st.
